@@ -1,0 +1,314 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.42.1.51946",
+      "templateHash": "7387362958956860311"
+    }
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Azure region for all resources"
+      }
+    },
+    "prefix": {
+      "type": "string",
+      "defaultValue": "vein-server",
+      "metadata": {
+        "description": "Prefix used for naming all resources"
+      }
+    },
+    "adminUsername": {
+      "type": "string",
+      "defaultValue": "azureuser",
+      "metadata": {
+        "description": "Admin username for the VM"
+      }
+    },
+    "adminPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Admin password for the VM"
+      }
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "networkDeployment",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "prefix": {
+            "value": "[parameters('prefix')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.42.1.51946",
+              "templateHash": "9229633784895598797"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string"
+            },
+            "prefix": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Network/virtualNetworks",
+              "apiVersion": "2023-04-01",
+              "name": "[format('{0}-vnet', parameters('prefix'))]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "addressSpace": {
+                  "addressPrefixes": [
+                    "10.0.0.0/16"
+                  ]
+                },
+                "subnets": [
+                  {
+                    "name": "default",
+                    "properties": {
+                      "addressPrefix": "10.0.1.0/24"
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "outputs": {
+            "subnetId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Network/virtualNetworks', format('{0}-vnet', parameters('prefix'))), '2023-04-01').subnets[0].id]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "serverDeployment",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "prefix": {
+            "value": "[parameters('prefix')]"
+          },
+          "adminUsername": {
+            "value": "[parameters('adminUsername')]"
+          },
+          "adminPassword": {
+            "value": "[parameters('adminPassword')]"
+          },
+          "subnetId": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'networkDeployment'), '2025-04-01').outputs.subnetId.value]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.42.1.51946",
+              "templateHash": "3196181903005746159"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string"
+            },
+            "prefix": {
+              "type": "string"
+            },
+            "adminUsername": {
+              "type": "string"
+            },
+            "adminPassword": {
+              "type": "securestring"
+            },
+            "subnetId": {
+              "type": "string"
+            }
+          },
+          "variables": {
+            "$fxv#0": "I2Nsb3VkLWNvbmZpZw0KDQpwYWNrYWdlX3VwZGF0ZTogdHJ1ZQ0KcGFja2FnZV91cGdyYWRlOiB0cnVlDQoNCnBhY2thZ2VzOg0KICAtIGxpYjMyZ2NjLXMxICAgICAjIHJlcXVpcmVkIGJ5IFN0ZWFtQ01EDQogIC0gY3VybA0KDQpydW5jbWQ6DQogICMgQ3JlYXRlIGEgZGVkaWNhdGVkIHVzZXIgdG8gcnVuIHRoZSBzZXJ2ZXINCiAgLSB1c2VyYWRkIC1tIHN0ZWFtdXNlcg0KDQogICMgSW5zdGFsbCBTdGVhbUNNRA0KICAtIG1rZGlyIC1wIC9ob21lL3N0ZWFtdXNlci9zdGVhbWNtZA0KICAtIGNkIC9ob21lL3N0ZWFtdXNlci9zdGVhbWNtZCAmJiBjdXJsIC1zcUwgImh0dHBzOi8vc3RlYW1jZG4tYS5ha2FtYWloZC5uZXQvY2xpZW50L2luc3RhbGxlci9zdGVhbWNtZF9saW51eC50YXIuZ3oiIHwgdGFyIHp4dmYgLQ0KICAtIGNob3duIC1SIHN0ZWFtdXNlcjpzdGVhbXVzZXIgL2hvbWUvc3RlYW11c2VyL3N0ZWFtY21kDQoNCiAgIyBEb3dubG9hZCBWRUlOIGRlZGljYXRlZCBzZXJ2ZXIgKEFwcCBJRCAyMTMxNDAwKQ0KICAtIHN1ZG8gLXUgc3RlYW11c2VyIC9ob21lL3N0ZWFtdXNlci9zdGVhbWNtZC9zdGVhbWNtZC5zaCArbG9naW4gYW5vbnltb3VzICthcHBfdXBkYXRlIDIxMzE0MDAgK3F1aXQNCg0KICAjIENyZWF0ZSBhIHN5c3RlbWQgc2VydmljZSBzbyB0aGUgc2VydmVyIHJlc3RhcnRzIGF1dG9tYXRpY2FsbHkgaWYgaXQgY3Jhc2hlcw0KICAtIHwNCiAgICBjYXQgPiAvZXRjL3N5c3RlbWQvc3lzdGVtL3ZlaW4tc2VydmVyLnNlcnZpY2UgPDwgRU9GDQogICAgW1VuaXRdDQogICAgRGVzY3JpcHRpb249VkVJTiBHYW1lIFNlcnZlcg0KICAgIEFmdGVyPW5ldHdvcmsudGFyZ2V0DQoNCiAgICBbU2VydmljZV0NCiAgICBVc2VyPXN0ZWFtdXNlcg0KICAgIFdvcmtpbmdEaXJlY3Rvcnk9L2hvbWUvc3RlYW11c2VyL1N0ZWFtL3N0ZWFtYXBwcy9jb21tb24vVkVJTkRlZGljYXRlZFNlcnZlcg0KICAgIEV4ZWNTdGFydD0vaG9tZS9zdGVhbXVzZXIvU3RlYW0vc3RlYW1hcHBzL2NvbW1vbi9WRUlORGVkaWNhdGVkU2VydmVyL3N0YXJ0X3NlcnZlci5zaA0KICAgIFJlc3RhcnQ9b24tZmFpbHVyZQ0KICAgIFJlc3RhcnRTZWM9MTANCg0KICAgIFtJbnN0YWxsXQ0KICAgIFdhbnRlZEJ5PW11bHRpLXVzZXIudGFyZ2V0DQogICAgRU9GDQogIC0gc3lzdGVtY3RsIGRhZW1vbi1yZWxvYWQNCiAgLSBzeXN0ZW1jdGwgZW5hYmxlIHZlaW4tc2VydmVyDQogIC0gc3lzdGVtY3RsIHN0YXJ0IHZlaW4tc2VydmVyDQo="
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Network/publicIPAddresses",
+              "apiVersion": "2023-04-01",
+              "name": "[format('{0}-pip', parameters('prefix'))]",
+              "location": "[parameters('location')]",
+              "sku": {
+                "name": "Standard"
+              },
+              "properties": {
+                "publicIPAllocationMethod": "Static"
+              }
+            },
+            {
+              "type": "Microsoft.Network/networkSecurityGroups",
+              "apiVersion": "2023-04-01",
+              "name": "[format('{0}-nsg', parameters('prefix'))]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "securityRules": [
+                  {
+                    "name": "allow-vein-game",
+                    "properties": {
+                      "priority": 100,
+                      "protocol": "Udp",
+                      "access": "Allow",
+                      "direction": "Inbound",
+                      "sourceAddressPrefix": "*",
+                      "sourcePortRange": "*",
+                      "destinationAddressPrefix": "*",
+                      "destinationPortRange": "7777"
+                    }
+                  },
+                  {
+                    "name": "allow-steam-query",
+                    "properties": {
+                      "priority": 110,
+                      "protocol": "Udp",
+                      "access": "Allow",
+                      "direction": "Inbound",
+                      "sourceAddressPrefix": "*",
+                      "sourcePortRange": "*",
+                      "destinationAddressPrefix": "*",
+                      "destinationPortRange": "27015"
+                    }
+                  },
+                  {
+                    "name": "allow-ssh",
+                    "properties": {
+                      "priority": 120,
+                      "protocol": "Tcp",
+                      "access": "Allow",
+                      "direction": "Inbound",
+                      "sourceAddressPrefix": "*",
+                      "sourcePortRange": "*",
+                      "destinationAddressPrefix": "*",
+                      "destinationPortRange": "22"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "Microsoft.Network/networkInterfaces",
+              "apiVersion": "2023-04-01",
+              "name": "[format('{0}-nic', parameters('prefix'))]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "networkSecurityGroup": {
+                  "id": "[resourceId('Microsoft.Network/networkSecurityGroups', format('{0}-nsg', parameters('prefix')))]"
+                },
+                "ipConfigurations": [
+                  {
+                    "name": "ipconfig1",
+                    "properties": {
+                      "subnet": {
+                        "id": "[parameters('subnetId')]"
+                      },
+                      "privateIPAllocationMethod": "Dynamic",
+                      "publicIPAddress": {
+                        "id": "[resourceId('Microsoft.Network/publicIPAddresses', format('{0}-pip', parameters('prefix')))]"
+                      }
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/networkSecurityGroups', format('{0}-nsg', parameters('prefix')))]",
+                "[resourceId('Microsoft.Network/publicIPAddresses', format('{0}-pip', parameters('prefix')))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Compute/virtualMachines",
+              "apiVersion": "2023-03-01",
+              "name": "[format('{0}-vm', parameters('prefix'))]",
+              "location": "[parameters('location')]",
+              "zones": [
+                "1"
+              ],
+              "properties": {
+                "hardwareProfile": {
+                  "vmSize": "Standard_D4as_v7"
+                },
+                "storageProfile": {
+                  "imageReference": {
+                    "publisher": "Canonical",
+                    "offer": "0001-com-ubuntu-server-jammy",
+                    "sku": "22_04-lts-gen2",
+                    "version": "latest"
+                  },
+                  "osDisk": {
+                    "createOption": "FromImage",
+                    "diskSizeGB": 64,
+                    "managedDisk": {
+                      "storageAccountType": "Premium_LRS"
+                    }
+                  }
+                },
+                "osProfile": {
+                  "computerName": "[format('{0}-vm', parameters('prefix'))]",
+                  "adminUsername": "[parameters('adminUsername')]",
+                  "adminPassword": "[parameters('adminPassword')]",
+                  "customData": "[variables('$fxv#0')]"
+                },
+                "networkProfile": {
+                  "networkInterfaces": [
+                    {
+                      "id": "[resourceId('Microsoft.Network/networkInterfaces', format('{0}-nic', parameters('prefix')))]"
+                    }
+                  ]
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces', format('{0}-nic', parameters('prefix')))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "serverIP": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Network/publicIPAddresses', format('{0}-pip', parameters('prefix'))), '2023-04-01').ipAddress]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'networkDeployment')]"
+      ]
+    }
+  ]
+}

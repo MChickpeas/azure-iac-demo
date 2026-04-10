@@ -2,3 +2,4 @@ config.json
 infra/main.json
 __pycache__/
 *.pyc
+server_log.txt
