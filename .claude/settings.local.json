@@ -7,7 +7,8 @@
       "Bash(cmd.exe /c \"az account list --output table 2>&1\")",
       "WebFetch(domain:store.steampowered.com)",
       "WebFetch(domain:ramjet.notion.site)",
-      "WebFetch(domain:xgamingserver.com)"
+      "WebFetch(domain:xgamingserver.com)",
+      "WebFetch(domain:github.com)"
     ]
   }
 }

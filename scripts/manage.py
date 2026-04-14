@@ -28,7 +28,7 @@ def start():
     
     print(f"  ✓ Server is up — connect at: {result.stdout.strip()}")
 
-# Stop would keep the VM reserved but would still charge you so use 
+def stop():
     print(f"Stopping {VM_NAME}...")
     subprocess.run([
         'az', 'vm', 'deallocate',

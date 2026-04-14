@@ -96,7 +96,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2023-03-01' = {
   zones:['1']
   properties: {
     hardwareProfile: {
-      vmSize: 'Standard_D4as_v7'   // Bigger and beefier 4 cores , 16gb RAM
+      vmSize: 'Standard_DC4ds_v3'
     }
     storageProfile: {
       imageReference: {
@@ -109,7 +109,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2023-03-01' = {
         createOption: 'FromImage'
         diskSizeGB: 64
         managedDisk: {
-          storageAccountType: 'Premium_LRS'
+          storageAccountType: 'StandardSSD_LRS'
         }
       }
     }

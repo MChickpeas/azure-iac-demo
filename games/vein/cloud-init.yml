@@ -1,0 +1,82 @@
+#cloud-config
+
+package_update: true
+package_upgrade: true
+
+packages:
+  - lib32gcc-s1     # required by SteamCMD
+  - curl
+
+runcmd:
+  # Create a dedicated user to run the server
+  - useradd -m steamuser
+
+  # Install SteamCMD
+  - mkdir -p /home/steamuser/steamcmd
+  - cd /home/steamuser/steamcmd && curl -sqL "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz" | tar zxvf -
+  - chown -R steamuser:steamuser /home/steamuser/steamcmd
+
+  # Download VEIN dedicated server (App ID 2131400)
+  - sudo -u steamuser /home/steamuser/steamcmd/steamcmd.sh +login anonymous +app_update 2131400 +quit
+
+  # Write a complete Game.ini config
+  - mkdir -p "/home/steamuser/Steam/steamapps/common/VEIN Dedicated Server/Vein/Saved/Config/LinuxServer"
+  - |
+    cat > "/home/steamuser/Steam/steamapps/common/VEIN Dedicated Server/Vein/Saved/Config/LinuxServer/Game.ini" << 'EOF'
+    [/Script/Engine.GameSession]
+    MaxPlayers=16
+
+    [/Script/Vein.VeinGameSession]
+    bPublic=True
+    ServerName=Vein Server
+    ServerDescription=A VEIN dedicated server
+    BindAddr=0.0.0.0
+    SuperAdminSteamIDs=76561198265193977
+    HeartbeatInterval=5.0
+
+    [/Script/Vein.ServerSettings]
+    GS_HungerMultiplier=1
+    GS_ThirstMultiplier=1
+    GS_TiredMultiplier=1
+    GS_ShowScoreboardBadges=1
+
+    [OnlineSubsystemSteam]
+    GameServerQueryPort=27015
+    bVACEnabled=0
+
+    [URL]
+    Port=7777
+    EOF
+  - chown -R steamuser:steamuser "/home/steamuser/Steam/steamapps/common/VEIN Dedicated Server/Vein/Saved"
+
+  # Create a wrapper script in a path with no spaces so systemd can launch it cleanly
+  - |
+    cat > /home/steamuser/start-vein.sh << 'EOF'
+    #!/bin/bash
+    cd "/home/steamuser/Steam/steamapps/common/VEIN Dedicated Server"
+    chmod +x "./Vein/Binaries/Linux/VeinServer-Linux-Test"
+    exec ./VeinServer.sh
+    EOF
+  - chmod +x /home/steamuser/start-vein.sh
+  - chown steamuser:steamuser /home/steamuser/start-vein.sh
+
+  # Create a systemd service so the server restarts automatically if it crashes
+  - |
+    cat > /etc/systemd/system/vein-server.service << 'EOF'
+    [Unit]
+    Description=VEIN Game Server
+    After=network.target
+
+    [Service]
+    User=steamuser
+    WorkingDirectory=/home/steamuser
+    ExecStart=/home/steamuser/start-vein.sh
+    Restart=on-failure
+    RestartSec=10
+
+    [Install]
+    WantedBy=multi-user.target
+    EOF
+  - systemctl daemon-reload
+  - systemctl enable vein-server
+  - systemctl start vein-server

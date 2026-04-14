@@ -1,0 +1,9 @@
+{
+  "name": "project-zomboid",
+  "display_name": "Project Zomboid",
+  "app_id": "380870",
+  "ports": [16261, 16262],
+  "vm_size": "Standard_DC4ds_v3",
+  "resource_group": "pz-server-rg",
+  "prefix": "pz-server"
+}

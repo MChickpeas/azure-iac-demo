@@ -1,0 +1,9 @@
+{
+  "name": "vein",
+  "display_name": "VEIN",
+  "app_id": "2131400",
+  "ports": [7777, 27015],
+  "vm_size": "Standard_DC4ds_v3",
+  "resource_group": "vein-server-rg",
+  "prefix": "vein-server"
+}

@@ -11,7 +11,7 @@ param adminUsername string = 'azureuser'
 @secure()
 param adminPassword string
 
-module network 'network.bicep' = {
+module network '../shared/network.bicep' = {
   name: 'networkDeployment'
   params: {
     location: location
@@ -19,13 +19,13 @@ module network 'network.bicep' = {
   }
 }
 
-module server 'server.bicep' = {
-  name:'serverDeployment'
+module server '../shared/server.bicep' = {
+  name: 'serverDeployment'
   params: {
     location: location
     prefix: prefix
     adminUsername: adminUsername
     adminPassword: adminPassword
-    subnetId: network.outputs.subnetId 
+    subnetId: network.outputs.subnetId
   }
 }
