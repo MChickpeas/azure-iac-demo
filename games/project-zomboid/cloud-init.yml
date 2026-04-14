@@ -1,0 +1,66 @@
+#cloud-config
+
+package_update: true
+package_upgrade: true
+
+packages:
+  - lib32gcc-s1     # required by SteamCMD
+  - curl
+  - default-jre     # Project Zomboid requires Java
+
+runcmd:
+  # Create a dedicated user to run the server
+  - useradd -m steamuser
+
+  # Install SteamCMD
+  - mkdir -p /home/steamuser/steamcmd
+  - cd /home/steamuser/steamcmd && curl -sqL "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz" | tar zxvf -
+  - chown -R steamuser:steamuser /home/steamuser/steamcmd
+
+  # Download Project Zomboid dedicated server (App ID 380870)
+  - sudo -u steamuser /home/steamuser/steamcmd/steamcmd.sh +login anonymous +app_update 380870 validate +quit
+
+  # Create wrapper script
+  - |
+    cat > /home/steamuser/start-pz.sh << 'EOF'
+    #!/bin/bash
+    cd /home/steamuser/Steam/steamapps/common/ProjectZomboid
+    exec ./start-server.sh
+    EOF
+  - chmod +x /home/steamuser/start-pz.sh
+  - chown steamuser:steamuser /home/steamuser/start-pz.sh
+
+  # Write server config
+  - mkdir -p /home/steamuser/Zomboid/Server
+  - |
+    cat > /home/steamuser/Zomboid/Server/servertest.ini << 'EOF'
+    MaxPlayers=16
+    Public=true
+    PublicName=My PZ Server
+    PublicDescription=A Project Zomboid dedicated server
+    DefaultPort=16261
+    UDPPort=16262
+    Map=Muldraugh, KY
+    EOF
+  - chown -R steamuser:steamuser /home/steamuser/Zomboid
+
+  # Create systemd service
+  - |
+    cat > /etc/systemd/system/pz-server.service << 'EOF'
+    [Unit]
+    Description=Project Zomboid Server
+    After=network.target
+
+    [Service]
+    User=steamuser
+    WorkingDirectory=/home/steamuser
+    ExecStart=/home/steamuser/start-pz.sh
+    Restart=on-failure
+    RestartSec=10
+
+    [Install]
+    WantedBy=multi-user.target
+    EOF
+  - systemctl daemon-reload
+  - systemctl enable pz-server
+  - systemctl start pz-server

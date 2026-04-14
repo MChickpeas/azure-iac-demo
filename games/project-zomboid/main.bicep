@@ -27,5 +27,9 @@ module server '../shared/server.bicep' = {
     adminUsername: adminUsername
     adminPassword: adminPassword
     subnetId: network.outputs.subnetId
+    vmSize: 'Standard_DC4ds_v3'
+    gamePort: '16261'
+    queryPort: '16262'
+    cloudInitContent: loadFileAsBase64('cloud-init.yml')
   }
 }

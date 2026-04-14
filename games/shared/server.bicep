@@ -1,4 +1,5 @@
-// server.bicep - VEIN Game server : Public IP, Firewall, VM
+// shared/server.bicep — reusable game server module
+// All game-specific values are passed in as params
 
 param location string
 param prefix string
@@ -8,13 +9,17 @@ param adminUsername string
 param adminPassword string
 
 param subnetId string
+param vmSize string
+param gamePort string
+param queryPort string
+param cloudInitContent string   // base64 encoded cloud-init, passed in from main.bicep
 
 resource publicIP 'Microsoft.Network/publicIPAddresses@2023-04-01' = {
-  name:'${prefix}-pip'
+  name: '${prefix}-pip'
   location: location
-  sku: {name:'Standard'}
-  properties:{
-    publicIPAllocationMethod:'Static'
+  sku: { name: 'Standard' }
+  properties: {
+    publicIPAllocationMethod: 'Static'
   }
 }
 
@@ -24,7 +29,7 @@ resource nsg 'Microsoft.Network/networkSecurityGroups@2023-04-01' = {
   properties: {
     securityRules: [
       {
-        name: 'allow-vein-game'
+        name: 'allow-game-port'
         properties: {
           priority: 100
           protocol: 'Udp'
@@ -33,11 +38,11 @@ resource nsg 'Microsoft.Network/networkSecurityGroups@2023-04-01' = {
           sourceAddressPrefix: '*'
           sourcePortRange: '*'
           destinationAddressPrefix: '*'
-          destinationPortRange: '7777'
+          destinationPortRange: gamePort   // dynamic — set per game
         }
       }
       {
-        name: 'allow-steam-query'
+        name: 'allow-query-port'
         properties: {
           priority: 110
           protocol: 'Udp'
@@ -46,7 +51,7 @@ resource nsg 'Microsoft.Network/networkSecurityGroups@2023-04-01' = {
           sourceAddressPrefix: '*'
           sourcePortRange: '*'
           destinationAddressPrefix: '*'
-          destinationPortRange: '27015'
+          destinationPortRange: queryPort  // dynamic — set per game
         }
       }
       {
@@ -71,7 +76,7 @@ resource nic 'Microsoft.Network/networkInterfaces@2023-04-01' = {
   location: location
   properties: {
     networkSecurityGroup: {
-      id: nsg.id     // attach the firewall rules to this NIC
+      id: nsg.id
     }
     ipConfigurations: [
       {
@@ -80,9 +85,9 @@ resource nic 'Microsoft.Network/networkInterfaces@2023-04-01' = {
           subnet: {
             id: subnetId
           }
-          privateIPAllocationMethod: 'Dynamic'  // private IP is fine as dynamic
+          privateIPAllocationMethod: 'Dynamic'
           publicIPAddress: {
-            id: publicIP.id  // attach the public IP so players can reach the server
+            id: publicIP.id
           }
         }
       }
@@ -93,17 +98,17 @@ resource nic 'Microsoft.Network/networkInterfaces@2023-04-01' = {
 resource vm 'Microsoft.Compute/virtualMachines@2023-03-01' = {
   name: '${prefix}-vm'
   location: location
-  zones:['1']
+  zones: ['1']
   properties: {
     hardwareProfile: {
-      vmSize: 'Standard_DC4ds_v3'
+      vmSize: vmSize   // dynamic — set per game
     }
     storageProfile: {
       imageReference: {
         publisher: 'Canonical'
         offer: '0001-com-ubuntu-server-jammy'
         sku: '22_04-lts-gen2'
-        version: 'latest'       // Ubuntu 22.04 LTS
+        version: 'latest'
       }
       osDisk: {
         createOption: 'FromImage'
@@ -117,17 +122,16 @@ resource vm 'Microsoft.Compute/virtualMachines@2023-03-01' = {
       computerName: '${prefix}-vm'
       adminUsername: adminUsername
       adminPassword: adminPassword
-      customData: loadFileAsBase64('cloud-init.yml')  // runs on first boot
+      customData: cloudInitContent   // dynamic — passed in from each game's main.bicep
     }
     networkProfile: {
       networkInterfaces: [
         {
-          id: nic.id    // attaches the NIC we defined above
+          id: nic.id
         }
       ]
     }
   }
 }
-
 
 output serverIP string = publicIP.properties.ipAddress
