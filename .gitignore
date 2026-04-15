@@ -1,5 +1,6 @@
 config.json
 infra/main.json
+games/**/main.json
 __pycache__/
 *.pyc
 server_log.txt

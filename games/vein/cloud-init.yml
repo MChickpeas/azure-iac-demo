@@ -49,11 +49,12 @@ runcmd:
     EOF
   - chown -R steamuser:steamuser "/home/steamuser/Steam/steamapps/common/VEIN Dedicated Server/Vein/Saved"
 
-  # Create a wrapper script in a path with no spaces so systemd can launch it cleanly
+  # Create a wrapper script — finds the install dir dynamically so spaces don't matter
   - |
     cat > /home/steamuser/start-vein.sh << 'EOF'
     #!/bin/bash
-    cd "/home/steamuser/Steam/steamapps/common/VEIN Dedicated Server"
+    INSTALL_DIR=$(find /home/steamuser/Steam/steamapps/common -maxdepth 2 -name "VeinServer.sh" | head -1 | xargs -I{} dirname {})
+    cd "$INSTALL_DIR"
     chmod +x "./Vein/Binaries/Linux/VeinServer-Linux-Test"
     exec ./VeinServer.sh
     EOF

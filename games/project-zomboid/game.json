@@ -5,5 +5,8 @@
   "ports": [16261, 16262],
   "vm_size": "Standard_DC4ds_v3",
   "resource_group": "pz-server-rg",
-  "prefix": "pz-server"
+  "prefix": "pz-server",
+  "mod_config_path": "/home/steamuser/Zomboid/Server/servertest.ini",
+  "workshop_ids": [],
+  "mod_ids": []
 }

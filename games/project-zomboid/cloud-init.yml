@@ -20,11 +20,12 @@ runcmd:
   # Download Project Zomboid dedicated server (App ID 380870)
   - sudo -u steamuser /home/steamuser/steamcmd/steamcmd.sh +login anonymous +app_update 380870 validate +quit
 
-  # Create wrapper script
+  # Create wrapper script — finds the install dir dynamically so spaces don't matter
   - |
     cat > /home/steamuser/start-pz.sh << 'EOF'
     #!/bin/bash
-    cd /home/steamuser/Steam/steamapps/common/ProjectZomboid
+    INSTALL_DIR=$(find /home/steamuser/Steam/steamapps/common -maxdepth 2 -name "start-server.sh" | head -1 | xargs -I{} dirname {})
+    cd "$INSTALL_DIR"
     exec ./start-server.sh
     EOF
   - chmod +x /home/steamuser/start-pz.sh
