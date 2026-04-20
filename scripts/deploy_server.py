@@ -2,6 +2,8 @@ import json
 import subprocess
 import sys
 import os
+import tempfile
+from datetime import date
 
 # Load base config
 with open('config.json') as f:
@@ -59,6 +61,65 @@ def log_resources(resource_group):
         rtype = r['type'].split('/')[-1]
         print(f"  • {rtype:<25} {r['name']}")
 
+def create_budget(game, resource_group):
+    budget_usd = game.get('budget_usd')
+    alert_email = config.get('alert_email')
+
+    if not budget_usd:
+        print("  — No budget_usd in game.json, skipping budget")
+        return
+    if not alert_email:
+        print("  ⚠ No alert_email in config.json — add it to receive budget alerts")
+        return
+
+    today = date.today()
+    start_date = today.replace(day=1).strftime('%Y-%m-%d')
+    end_date    = f"{today.year + 2}-01-01"
+
+    # Two alert thresholds: warn at 80%, hard stop at 100%
+    notifications = {
+        "Actual_GreaterThan_80_Percent": {
+            "enabled": True,
+            "operator": "GreaterThanOrEqualTo",
+            "threshold": 80,
+            "contactEmails": [alert_email],
+            "thresholdType": "Actual"
+        },
+        "Actual_GreaterThan_100_Percent": {
+            "enabled": True,
+            "operator": "GreaterThanOrEqualTo",
+            "threshold": 100,
+            "contactEmails": [alert_email],
+            "thresholdType": "Actual"
+        }
+    }
+
+    # Write notifications to a temp file — avoids shell quoting issues on Windows
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        json.dump(notifications, f)
+        notifications_file = f.name
+
+    budget_name = f"{game['prefix']}-budget"
+    print(f"Creating budget alert (${budget_usd}/month)...")
+    result = subprocess.run([
+        'az', 'consumption', 'budget', 'create',
+        '--budget-name', budget_name,
+        '--amount', str(budget_usd),
+        '--category', 'Cost',
+        '--time-grain', 'Monthly',
+        '--start-date', start_date,
+        '--end-date', end_date,
+        '--resource-group', resource_group,
+        '--notifications', f'@{notifications_file}'
+    ], capture_output=True, text=True, shell=True)
+
+    os.unlink(notifications_file)
+
+    if result.returncode != 0:
+        print(f"  ⚠ Budget creation failed: {result.stderr.strip()}")
+    else:
+        print(f"  ✓ Budget set at ${budget_usd}/month — email alerts at 80% and 100% → {alert_email}")
+
 def build_bicep(game_path):
     print("Building Bicep template...")
     subprocess.run([
@@ -88,4 +149,5 @@ if __name__ == '__main__':
     build_bicep(game_path)
     create_resource_group(resource_group)
     deploy(game, resource_group)
+    create_budget(game, resource_group)
     log_resources(resource_group)

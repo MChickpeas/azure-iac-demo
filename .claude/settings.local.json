@@ -8,7 +8,8 @@
       "WebFetch(domain:store.steampowered.com)",
       "WebFetch(domain:ramjet.notion.site)",
       "WebFetch(domain:xgamingserver.com)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(dir \"A:\\\\Claude\\\\Project1\" /b)"
     ]
   }
 }

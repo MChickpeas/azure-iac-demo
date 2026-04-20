@@ -1,6 +1,7 @@
 config.json
 infra/main.json
 games/**/main.json
+games/**/cloud-init.yml
 __pycache__/
 *.pyc
 server_log.txt

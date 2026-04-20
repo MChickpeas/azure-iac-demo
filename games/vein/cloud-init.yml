@@ -11,18 +11,35 @@ runcmd:
   # Create a dedicated user to run the server
   - useradd -m steamuser
 
-  # Install SteamCMD
+  # Install SteamCMD as steamuser so ownership is correct from the start
   - mkdir -p /home/steamuser/steamcmd
-  - cd /home/steamuser/steamcmd && curl -sqL "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz" | tar zxvf -
-  - chown -R steamuser:steamuser /home/steamuser/steamcmd
+  - chown steamuser:steamuser /home/steamuser/steamcmd
+  - sudo -u steamuser bash -c "cd /home/steamuser/steamcmd && curl -sqL 'https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz' | tar zxvf -"
 
-  # Download VEIN dedicated server (App ID 2131400)
-  - sudo -u steamuser /home/steamuser/steamcmd/steamcmd.sh +login anonymous +app_update 2131400 +quit
+  # Run SteamCMD once with +quit so it self-updates before we try to install anything
+  # (skipping this causes "Missing configuration" errors on first run)
+  - sudo -u steamuser /home/steamuser/steamcmd/steamcmd.sh +quit
+
+  # Download VEIN dedicated server
+  - sudo -u steamuser /home/steamuser/steamcmd/steamcmd.sh +force_install_dir /home/steamuser/vein +login anonymous +app_update 2131400 validate +quit
+
+  # Set up Steam SDK symlinks as required by the guide
+  # ~/.steam/sdk64 must point to steamcmd/linux64
+  - mkdir -p /home/steamuser/.steam
+  - chown steamuser:steamuser /home/steamuser/.steam
+  - sudo -u steamuser ln -s /home/steamuser/steamcmd/linux64 /home/steamuser/.steam/sdk64
+  # ~/.steam/steam must exist so steamclient.so path resolves correctly
+  - sudo -u steamuser ln -s /home/steamuser/steamcmd /home/steamuser/.steam/steam
+  # Link steamclient.so directly into the VEIN binary directory
+  - sudo -u steamuser ln -s /home/steamuser/steamcmd/linux64/steamclient.so /home/steamuser/vein/Vein/Binaries/Linux/steamclient.so
+
+  # Write steam_appid.txt — must contain the BASE game App ID (1857950), NOT the dedicated server ID
+  - sudo -u steamuser bash -c "echo '1857950' > /home/steamuser/vein/steam_appid.txt"
 
   # Write a complete Game.ini config
-  - mkdir -p "/home/steamuser/Steam/steamapps/common/VEIN Dedicated Server/Vein/Saved/Config/LinuxServer"
+  - mkdir -p /home/steamuser/vein/Vein/Saved/Config/LinuxServer
   - |
-    cat > "/home/steamuser/Steam/steamapps/common/VEIN Dedicated Server/Vein/Saved/Config/LinuxServer/Game.ini" << 'EOF'
+    cat > /home/steamuser/vein/Vein/Saved/Config/LinuxServer/Game.ini << 'EOF'
     [/Script/Engine.GameSession]
     MaxPlayers=16
 
@@ -30,6 +47,7 @@ runcmd:
     bPublic=True
     ServerName=Vein Server
     ServerDescription=A VEIN dedicated server
+    ServerPassword=change_me
     BindAddr=0.0.0.0
     SuperAdminSteamIDs=76561198265193977
     HeartbeatInterval=5.0
@@ -43,25 +61,25 @@ runcmd:
     [OnlineSubsystemSteam]
     GameServerQueryPort=27015
     bVACEnabled=0
+    GameServerToken=5086CDE49004F669E338B8EF83B6689E
 
     [URL]
     Port=7777
     EOF
-  - chown -R steamuser:steamuser "/home/steamuser/Steam/steamapps/common/VEIN Dedicated Server/Vein/Saved"
+  - chown -R steamuser:steamuser /home/steamuser/vein/Vein/Saved
 
-  # Create a wrapper script — finds the install dir dynamically so spaces don't matter
+  # Create wrapper script
   - |
     cat > /home/steamuser/start-vein.sh << 'EOF'
     #!/bin/bash
-    INSTALL_DIR=$(find /home/steamuser/Steam/steamapps/common -maxdepth 2 -name "VeinServer.sh" | head -1 | xargs -I{} dirname {})
-    cd "$INSTALL_DIR"
-    chmod +x "./Vein/Binaries/Linux/VeinServer-Linux-Test"
-    exec ./VeinServer.sh
+    cd /home/steamuser/vein
+    chmod +x ./Vein/Binaries/Linux/VeinServer-Linux-Test
+    exec ./VeinServer.sh -log
     EOF
   - chmod +x /home/steamuser/start-vein.sh
   - chown steamuser:steamuser /home/steamuser/start-vein.sh
 
-  # Create a systemd service so the server restarts automatically if it crashes
+  # Create systemd service
   - |
     cat > /etc/systemd/system/vein-server.service << 'EOF'
     [Unit]
@@ -70,7 +88,7 @@ runcmd:
 
     [Service]
     User=steamuser
-    WorkingDirectory=/home/steamuser
+    WorkingDirectory=/home/steamuser/vein
     ExecStart=/home/steamuser/start-vein.sh
     Restart=on-failure
     RestartSec=10

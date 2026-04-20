@@ -8,5 +8,6 @@
   "prefix": "pz-server",
   "mod_config_path": "/home/steamuser/Zomboid/Server/servertest.ini",
   "workshop_ids": [],
-  "mod_ids": []
+  "mod_ids": [],
+  "budget_usd": 50
 }

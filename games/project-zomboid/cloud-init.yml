@@ -24,7 +24,7 @@ runcmd:
   - |
     cat > /home/steamuser/start-pz.sh << 'EOF'
     #!/bin/bash
-    INSTALL_DIR=$(find /home/steamuser/Steam/steamapps/common -maxdepth 2 -name "start-server.sh" | head -1 | xargs -I{} dirname {})
+    INSTALL_DIR=$(find /home/steamuser/Steam/steamapps/common -maxdepth 2 -name "start-server.sh" -print -quit | xargs -I{} dirname {})
     cd "$INSTALL_DIR"
     exec ./start-server.sh
     EOF
